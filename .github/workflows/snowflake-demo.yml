@@ -18,13 +18,13 @@ jobs:
         run: |
           echo "Installing SnowSQL..."
           
-          # Add Snowflake’s package repository and install SnowSQL
+          # Install SnowSQL using pip (Snowflake official method)
           sudo apt update && sudo apt install -y python3-pip
           pip install --upgrade snowflake-cli-labs
 
           echo "Checking if SnowSQL is installed..."
-          which snowsql || echo "❌ SnowSQL not found"
-          snowsql --version || echo "❌ SnowSQL failed to run"
+          which snowsql || { echo "❌ ERROR: SnowSQL not found!"; exit 1; }
+          snowsql --version || { echo "❌ ERROR: SnowSQL failed to run!"; exit 1; }
 
       - name: Configure SnowSQL Connection
         env:
@@ -53,11 +53,18 @@ jobs:
 
           echo "✅ SnowSQL is now configured!"
 
+      - name: Verify SnowSQL Before Running Queries
+        run: |
+          echo "Verifying SnowSQL again before queries..."
+          which snowsql || { echo "❌ ERROR: SnowSQL still not found!"; exit 1; }
+          snowsql --version || { echo "❌ ERROR: SnowSQL failed to run!"; exit 1; }
+
       - name: Run Snowflake Query
         run: |
-          # Ensure CLI is installed before proceeding
-          which snowsql || exit 1
           echo "✅ Running Snowflake queries..."
+
+          # Ensure SnowSQL is installed before proceeding
+          which snowsql || { echo "❌ ERROR: SnowSQL not found!"; exit 1; }
 
           # Test connection
           snowsql -c my_snowflake -q "SELECT CURRENT_USER(), CURRENT_ROLE(), CURRENT_DATABASE(), CURRENT_WAREHOUSE();"
