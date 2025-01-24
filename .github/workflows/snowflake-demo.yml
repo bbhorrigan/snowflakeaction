@@ -1,0 +1,45 @@
+name: Snowflake Demo Workflow
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  snowflake_query:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Snowflake CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/Snowflake-Labs/snowflake-cli/main/install.sh | sh
+          echo "$HOME/.snowflake/bin" >> $GITHUB_PATH
+          snow sql --version
+
+      - name: Run Snowflake Query
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PASSWORD: ${{ secrets.SNOWFLAKE_PASSWORD }}
+          SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
+        run: |
+          echo "[connections.my_snowflake]" > ~/.snowsql/config
+          echo "accountname = $SNOWFLAKE_ACCOUNT" >> ~/.snowsql/config
+          echo "username = $SNOWFLAKE_USER" >> ~/.snowsql/config
+          echo "password = $SNOWFLAKE_PASSWORD" >> ~/.snowsql/config
+          echo "dbname = $SNOWFLAKE_DATABASE" >> ~/.snowsql/config
+          echo "warehousename = $SNOWFLAKE_WAREHOUSE" >> ~/.snowsql/config
+          echo "rolename = $SNOWFLAKE_ROLE" >> ~/.snowsql/config
+
+          # Test connection
+          snow sql -c my_snowflake -q "SELECT CURRENT_USER(), CURRENT_ROLE(), CURRENT_DATABASE(), CURRENT_WAREHOUSE();"
+
+          # Run another query (List all tables in the database)
+          snow sql -c my_snowflake -q "SHOW TABLES;"
+
