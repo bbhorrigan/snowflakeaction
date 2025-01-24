@@ -18,7 +18,9 @@ jobs:
         run: |
           curl -fsSL https://raw.githubusercontent.com/Snowflake-Labs/snowflake-cli/main/install.sh | sh
           echo "$HOME/.snowflake/bin" >> $GITHUB_PATH
-          snow sql --version
+          echo "PATH after install: $PATH"
+          which snow || echo "Snowflake CLI not found"
+          snow sql --version || echo "Snowflake CLI failed to run"
 
       - name: Run Snowflake Query
         env:
@@ -29,6 +31,8 @@ jobs:
           SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
         run: |
+          which snow || exit 1  # Exit if Snowflake CLI is not found
+
           echo "[connections.my_snowflake]" > ~/.snowsql/config
           echo "accountname = $SNOWFLAKE_ACCOUNT" >> ~/.snowsql/config
           echo "username = $SNOWFLAKE_USER" >> ~/.snowsql/config
@@ -39,6 +43,24 @@ jobs:
 
           # Test connection
           snow sql -c my_snowflake -q "SELECT CURRENT_USER(), CURRENT_ROLE(), CURRENT_DATABASE(), CURRENT_WAREHOUSE();"
+
+          # Create a test table
+          snow sql -c my_snowflake -q "
+          CREATE TABLE IF NOT EXISTS DEMO_TABLE (
+            id INT AUTOINCREMENT PRIMARY KEY,
+            name STRING,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );"
+
+          # Insert sample data
+          snow sql -c my_snowflake -q "
+          INSERT INTO DEMO_TABLE (name) VALUES 
+          ('GitHub Actions Demo 1'), 
+          ('GitHub Actions Demo 2');"
+
+          # Retrieve data
+          snow sql -c my_snowflake -q "SELECT * FROM DEMO_TABLE;"
+
 
           # Run another query (List all tables in the database)
           snow sql -c my_snowflake -q "SHOW TABLES;"
