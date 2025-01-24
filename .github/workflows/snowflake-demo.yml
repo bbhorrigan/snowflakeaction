@@ -14,24 +14,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install SnowSQL Manually (Corrected URL)
+      - name: Install SnowSQL Using Official Package
         run: |
           echo "Installing SnowSQL..."
           
-          # Corrected URL (Latest version from Snowflake)
-          SNOWSQL_URL="https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/latest/linux_x86_64/snowsql"
-          
-          # Download SnowSQL
-          curl -o snowsql.pkg $SNOWSQL_URL
-
-          # Verify the downloaded file (should be a binary, not HTML/XML)
-          if grep -q "<?xml" snowsql.pkg; then
-            echo "❌ ERROR: Downloaded file is not a valid SnowSQL binary!"
-            exit 1
-          fi
-
-          chmod +x snowsql.pkg
-          sudo mv snowsql.pkg /usr/local/bin/snowsql
+          # Add Snowflake’s package repository and install SnowSQL
+          sudo apt update && sudo apt install -y python3-pip
+          pip install --upgrade snowflake-cli-labs
 
           echo "Checking if SnowSQL is installed..."
           which snowsql || echo "❌ SnowSQL not found"
