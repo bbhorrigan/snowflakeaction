@@ -14,28 +14,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Snowflake CLI (snow sql)
+      - name: Install SnowSQL Manually
         run: |
-          echo "Installing Snowflake CLI..."
-          curl -fsSL https://raw.githubusercontent.com/Snowflake-Labs/snowflake-cli/main/install.sh | sh
-          echo "$HOME/.snowflake/bin" >> $GITHUB_PATH
-
-          echo "Verifying installation..."
-          echo "Current PATH: $PATH"
-          which snow || echo "❌ Snowflake CLI not found"
-          snow sql --version || echo "❌ Snowflake CLI failed to run"
-
-      - name: Debug SnowSQL Alternative Installation (if needed)
-        run: |
-          if ! which snow; then
-            echo "❌ Snowflake CLI installation failed! Trying SnowSQL as an alternative..."
-            curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql
-            chmod +x snowsql
-            sudo mv snowsql /usr/local/bin/
-            snowsql --version || echo "❌ SnowSQL also failed!"
-          else
-            echo "✅ Snowflake CLI installed successfully!"
-          fi
+          echo "Installing SnowSQL..."
+          curl -O https://sfc-repo.snowflakecomputing.com/snowsql/bootstrap/1.2/linux_x86_64/snowsql
+          chmod +x snowsql
+          sudo mv snowsql /usr/local/bin/
+          
+          echo "Checking if SnowSQL is installed..."
+          which snowsql || echo "❌ SnowSQL not found"
+          snowsql --version || echo "❌ SnowSQL failed to run"
 
       - name: Run Snowflake Query
         env:
@@ -47,10 +35,10 @@ jobs:
           SNOWFLAKE_ROLE: ${{ secrets.SNOWFLAKE_ROLE }}
         run: |
           # Ensure CLI is installed before proceeding
-          which snow || exit 1
+          which snowsql || exit 1
           echo "✅ Running Snowflake queries..."
 
-          # Configure Snowflake connection
+          # Configure SnowSQL connection
           echo "[connections.my_snowflake]" > ~/.snowsql/config
           echo "accountname = $SNOWFLAKE_ACCOUNT" >> ~/.snowsql/config
           echo "username = $SNOWFLAKE_USER" >> ~/.snowsql/config
@@ -60,10 +48,10 @@ jobs:
           echo "rolename = $SNOWFLAKE_ROLE" >> ~/.snowsql/config
 
           # Test connection
-          snow sql -c my_snowflake -q "SELECT CURRENT_USER(), CURRENT_ROLE(), CURRENT_DATABASE(), CURRENT_WAREHOUSE();"
+          snowsql -c my_snowflake -q "SELECT CURRENT_USER(), CURRENT_ROLE(), CURRENT_DATABASE(), CURRENT_WAREHOUSE();"
 
           # Create a test table
-          snow sql -c my_snowflake -q "
+          snowsql -c my_snowflake -q "
           CREATE TABLE IF NOT EXISTS DEMO_TABLE (
             id INT AUTOINCREMENT PRIMARY KEY,
             name STRING,
@@ -71,10 +59,10 @@ jobs:
           );"
 
           # Insert sample data
-          snow sql -c my_snowflake -q "
+          snowsql -c my_snowflake -q "
           INSERT INTO DEMO_TABLE (name) VALUES 
           ('GitHub Actions Demo 1'), 
           ('GitHub Actions Demo 2');"
 
           # Retrieve data
-          snow sql -c my_snowflake -q "SELECT * FROM DEMO_TABLE;"
+          snowsql -c my_snowflake -q "SELECT * FROM DEMO_TABLE;"
